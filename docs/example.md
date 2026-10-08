@@ -1,7 +1,31 @@
-# คู่มือร้านกาแฟตัวอย่าง
+# Sample Coffee Shop
 
-ร้านเปิดทุกวันเวลา 08:00–18:00 น. ปิดเฉพาะวันปีใหม่
+```text
+-- text
 
-เมนูลาเต้ร้อนราคา 85 บาท และลาเต้เย็นราคา 95 บาท
+This sample document supplies facts for the RAG demo.
+```
 
-รับชำระด้วยเงินสด บัตรเครดิต และพร้อมเพย์
+## Opening hours
+
+```text
+-- text
+
+The shop is open every day from 08:00 to 18:00.
+It is closed only on New Year's Day.
+```
+
+## Menu prices
+
+| Item | Price |
+|---|---:|
+| Hot latte | 85 THB |
+| Iced latte | 95 THB |
+
+## Payment methods
+
+```text
+-- text 
+
+The shop accepts cash, credit cards, and PromptPay.
+```

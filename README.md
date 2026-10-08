@@ -1,33 +1,87 @@
 # Rust RAG with FastEmbed
 
-ตัวอย่าง RAG แบบ CLI: Rust ใช้ FastEmbed รุ่น `multilingual-e5-small` สร้าง embedding, Qdrant เก็บและค้นเวกเตอร์, Ollama สร้างคำตอบจากข้อความที่ค้นได้ รองรับไฟล์ UTF-8 `.txt` และ `.md` ใน `docs/` (ค้นไฟล์ในโฟลเดอร์ย่อยด้วย)
+```text
+-- text
 
-ดู [RAG flow](docs/rag-flow.md) สำหรับเส้นทาง ingest และถามตอบ ไฟล์นี้ถูกข้ามเมื่อสั่ง ingest เอกสาร
+This project is a local RAG command-line example. Rust uses FastEmbed to
+create embeddings, Qdrant to store and retrieve document chunks, and Ollama
+to generate answers from the retrieved text.
+```
 
-## เริ่มใช้งาน
+## Documentation
 
-ต้องมี Docker และ Docker Compose; ครั้งแรกจะดาวน์โหลด Docker images, embedding model และ chat model
+| Document | Purpose |
+|---|---|
+| [System flow](docs/rag-flow.md) | Ingestion and question-answering paths. |
 
-```sh
+## Components
+
+| Component | Responsibility | Default |
+|---|---|---|
+| Rust CLI | Ingest documents and answer questions | `app` service |
+| FastEmbed | Embed documents and questions | `multilingual-e5-small` |
+| Qdrant | Store vectors and retrieve similar chunks | `documents_e5_small_v1` collection |
+| Ollama | Generate answers from retrieved context | `qwen2.5:1.5b` |
+
+## Quick start
+
+```text
+-- text 
+
+Docker and Docker Compose are required. The first run downloads the container
+images, the embedding model, and the Ollama model.
+
 make setup
-make chat q="ร้านเปิดกี่โมง และลาเต้เย็นราคาเท่าไร?"
+make chat q="When does the shop open, and how much is an iced latte?"
+
+make setup starts Qdrant and Ollama, pulls the default Ollama model, builds
+the Rust app, and ingests the files in docs/.
 ```
 
-เพิ่มไฟล์ใน `docs/` แล้วรัน `make ingest` อีกครั้งได้ หรือระบุไฟล์เดียวด้วย `make ingest DOCS=/docs/example.md` การ ingest ไฟล์เดิมจะลบ chunks รุ่นก่อนแล้วแทนที่ด้วยรุ่นใหม่ คำตอบจะแสดงหมายเลขอ้างอิงและชื่อไฟล์ต้นทาง หากใช้ `make chat q=""` จะมีช่องให้พิมพ์คำถาม
+## Commands
 
-ปรับรุ่น Ollama ได้ผ่าน `OLLAMA_MODEL` เช่น `OLLAMA_MODEL=qwen2.5:3b make pull-model` แล้วใช้ `OLLAMA_MODEL=qwen2.5:3b make chat q="..."`
+| Command | Result |
+|---|---|
+| `make ingest` | Index all supported files in `docs/` and its subdirectories. |
+| `make ingest DOCS=/docs/example.md` | Index one file from the container's `/docs` mount. |
+| `make chat q="..."` | Ask a question about indexed documents. |
+| `make chat q=""` | Prompt for a question interactively. |
+| `make test` | Run the Rust unit tests on the host. |
+| `make down` | Stop the Compose services. |
 
-```sh
-make down
+```bash
+-- bash
+
+# To change the answer model, pull it before asking a question:
+
+OLLAMA_MODEL=qwen2.5:3b make pull-model
+OLLAMA_MODEL=qwen2.5:3b make chat q="When does the shop open?"
 ```
 
-ข้อมูล Qdrant, โมเดล Ollama และ FastEmbed เก็บใน Docker volumes; `docker compose down -v` จะลบข้อมูลเหล่านี้
+## Document contract
 
-## พัฒนาบนเครื่อง
+```text
+-- text
 
-```sh
+The ingester reads UTF-8 .md and .txt files recursively. It splits text into
+500-character chunks with an 80-character overlap. Re-ingesting a file
+replaces that file's previous chunks. The flow diagram at docs/rag-flow.md
+is excluded from ingestion.
+
+Answers show the retrieved source path, chunk number, and similarity score.
+Qdrant, Ollama, and FastEmbed data persist in Docker volumes after make down.
+Running docker compose down -v removes those volumes.
+```
+
+## Local development
+
+```bash
+-- bash
+
 cargo test
 QDRANT_URL=http://localhost:6333 OLLAMA_URL=http://localhost:11435 cargo run -- ingest docs
-```
 
-การแบ่งข้อความในตัวอย่างนี้ใช้จำนวนอักขระ 500 ตัวและซ้อนทับ 80 ตัว เหมาะสำหรับสาธิตกับไฟล์ข้อความสั้น ๆ; ยังไม่มีตัวอ่าน PDF, การควบคุมสิทธิ์ หรือการจัดการไฟล์ที่ถูกลบจาก `docs/`
+# This example handles short text documents. It does not parse PDFs, enforce
+# document access controls, or remove indexed chunks when a source file is
+# deleted from docs/.
+```

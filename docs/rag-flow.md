@@ -1,6 +1,23 @@
-# RAG flow ของโปรเจกต์นี้
+# RAG System Flow
 
-## 1. เก็บเอกสาร (`make ingest`)
+```text
+-- text
+
+This document describes the two runtime paths of the Rust RAG example.
+The diagrams use fenced text blocks so their layout remains readable in
+Markdown previews.
+```
+
+## Components
+
+| Component | Role in this flow |
+|---|---|
+| Rust CLI | Reads files, builds prompts, and prints answers with sources. |
+| FastEmbed | Creates document and question vectors with `multilingual-e5-small`. |
+| Qdrant | Stores vectors and retrieves the nearest chunks. |
+| Ollama | Generates an answer from the retrieved context. |
+
+## 1. Ingest documents (`make ingest`)
 
 ```text
                  +---------------------------+
@@ -43,9 +60,15 @@
                                                 +------------------+
 ```
 
-ข้อมูลที่ Qdrant เก็บประกอบด้วยเวกเตอร์ ชื่อไฟล์ (`source`) ลำดับ chunk และข้อความ FastEmbed เติม `passage: ` ก่อนสร้างเวกเตอร์ เมื่อ ingest ไฟล์เดิม Rust จะลบ chunks เก่าก่อนบันทึกชุดใหม่
+```text
+-- text
 
-## 2. ถามตอบ (`make chat q="คำถาม"`)
+Each Qdrant point stores a vector and the payload fields source, chunk,
+and text. FastEmbed receives document text with a "passage: " prefix.
+Re-ingesting a file deletes its previous chunks before storing the new ones.
+```
+
+## 2. Answer questions (`make chat q="question"`)
 
 ```text
                  +---------------------------+
@@ -88,6 +111,26 @@
                           +------------------+   +-------------------+
 ```
 
-FastEmbed เติม `query: ` ก่อนสร้างเวกเตอร์คำถาม และใช้โมเดล `multilingual-e5-small` ทั้งสองช่วง ส่วน Ollama ใช้ `qwen2.5:1.5b` เป็นค่าเริ่มต้นเพื่อเขียนคำตอบ ดังนั้นค้นถูกไฟล์แล้วก็ยังมีโอกาสได้คำตอบภาษาไทยที่ไม่เป็นธรรมชาติ
+```text
+-- text
 
-แผนภาพนี้อยู่ใน `docs/` แต่ตัว ingest จะข้ามไฟล์ `rag-flow.md`
+FastEmbed receives questions with a "query: " prefix. Ollama uses
+qwen2.5:1.5b by default. Retrieval and answer generation are separate
+steps: Qdrant may find the right source even when the model phrases its
+answer poorly.
+```
+
+## Response and failure behavior
+
+| Condition | Behavior |
+|---|---|
+| Qdrant returns no chunks | The CLI asks the user to ingest documents first; Ollama is not called. |
+| Ollama model is missing | The CLI reports the model name and the pull command. |
+| An answer is generated | The CLI prints the answer, then each retrieved source path, chunk number, and similarity score. |
+
+```text
+-- text
+
+This file lives in docs/, but the ingester excludes rag-flow.md so the
+diagram does not become searchable source content.
+```
